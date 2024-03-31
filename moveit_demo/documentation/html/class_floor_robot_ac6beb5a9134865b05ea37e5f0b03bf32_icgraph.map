@@ -1,0 +1,5 @@
+<map id="FloorRobot::exit_tool_changer_" name="FloorRobot::exit_tool_changer_">
+<area shape="rect" id="node1" title="Move the end effector outside a tool changer." alt="" coords="432,5,591,47"/>
+<area shape="rect" id="node2" href="$class_floor_robot.html#aa788dd167eea69ec5d7409f464235e87" title="Callback function for the service /commander/exit_tool_changer." alt="" coords="225,5,384,47"/>
+<area shape="rect" id="node3" href="$class_floor_robot.html#a9f59d5385824b89d7fc9a60bbe345283" title="Construct a new FloorRobot object." alt="" coords="5,13,177,39"/>
+</map>

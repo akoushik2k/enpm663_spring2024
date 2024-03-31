@@ -1,0 +1,5 @@
+<map id="FloorRobot::move_robot_home_srv_cb_" name="FloorRobot::move_robot_home_srv_cb_">
+<area shape="rect" id="node1" title="Callback function for the service /commander/move_robot_home." alt="" coords="5,5,184,47"/>
+<area shape="rect" id="node2" href="$class_floor_robot.html#aad160b5bc494fbd367520908aa5e3508" title="Send the floor robot to the home configuration." alt="" coords="232,13,400,39"/>
+<area shape="rect" id="node3" href="$class_floor_robot.html#ad107b58ed50f02a9e70545734e30a04a" title="Move the floor robot to the target pose." alt="" coords="448,5,607,47"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="FloorRobot::move_robot_to_tray_" name="FloorRobot::move_robot_to_tray_">
+<area shape="rect" id="node1" title="Provide motion to the floor robot to move the end effector just above a tray." alt="" coords="452,5,631,47"/>
+<area shape="rect" id="node2" href="$class_floor_robot.html#aa6e62eb065a31007ad2ac335d29e98c0" title="Callback function for the service /commander/move_robot_to_tray." alt="" coords="225,5,404,47"/>
+<area shape="rect" id="node3" href="$class_floor_robot.html#a9f59d5385824b89d7fc9a60bbe345283" title="Construct a new FloorRobot object." alt="" coords="5,13,177,39"/>
+</map>

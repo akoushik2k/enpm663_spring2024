@@ -1,0 +1,4 @@
+<map id="FloorRobot::move_robot_home_" name="FloorRobot::move_robot_home_">
+<area shape="rect" id="node1" title="Move the robot to its home pose." alt="" coords="5,5,184,47"/>
+<area shape="rect" id="node2" href="$class_floor_robot.html#ad107b58ed50f02a9e70545734e30a04a" title="Move the floor robot to the target pose." alt="" coords="232,5,391,47"/>
+</map>

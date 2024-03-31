@@ -1,0 +1,9 @@
+<map id="FloorRobot::move_tray_to_agv" name="FloorRobot::move_tray_to_agv">
+<area shape="rect" id="node1" title="Provide motion to the floor robot to move the attached tray above an AGV." alt="" coords="5,155,176,197"/>
+<area shape="rect" id="node2" href="$class_utils.html#ae4bd87736a535e3ef951522599e6edd7" title="Build a pose from a position and orientation." alt="" coords="256,5,387,32"/>
+<area shape="rect" id="node3" href="$class_floor_robot.html#aca2292f6a0068ccf74e14e134026817a" title="Get the pose of a frame in the world frame." alt="" coords="241,57,401,98"/>
+<area shape="rect" id="node4" href="$class_utils.html#abf90aa2bd7a8c0a858c7ed2929c66819" title="Get the yaw from pose object." alt="" coords="245,122,398,163"/>
+<area shape="rect" id="node5" href="$class_floor_robot.html#a42e5796adbbbc5685908212e4b49c9f6" title="Move the floor robot through waypoints." alt="" coords="224,187,419,229"/>
+<area shape="rect" id="node6" href="$class_floor_robot.html#ad107b58ed50f02a9e70545734e30a04a" title="Move the floor robot to the target pose." alt="" coords="242,253,401,294"/>
+<area shape="rect" id="node7" href="$class_floor_robot.html#a067e072496ebcf80d617b8430cfe2d92" title="Set the orientation for the end effector of the robot." alt="" coords="240,318,403,359"/>
+</map>
