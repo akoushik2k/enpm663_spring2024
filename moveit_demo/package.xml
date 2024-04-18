@@ -3,7 +3,7 @@
 <package format="3">
   <name>moveit_demo</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Moveit demo</description>
   <maintainer email="zeidk@umd.edu">zeid</maintainer>
   <license>TODO: License declaration</license>
 
