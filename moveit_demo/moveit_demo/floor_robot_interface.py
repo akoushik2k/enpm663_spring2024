@@ -113,30 +113,31 @@ class RobotCommanderInterface(Node):
             1, self._main_timer_cb, callback_group=main_timer_cb_group
         )
         
-        # Multiple flags to trigger the robot actions
+        # The following flags are used to ensure an action is not triggered multiple times
+        self._moving_robot_home = False
+        self._moving_robot_to_table = False
+        self._entering_tool_changer = False
+        self._changing_gripper = False
+        self._exiting_tool_changer = False
+        self._activating_gripper = False
+        self._deactivating_gripper = False
+        self._moving_robot_to_tray = False
+        self._moving_tray_to_agv = False
+        self._ending_demo = False
+
         # The following flags are used to trigger the next action
         self._kit_completed = False
         self._competition_started = False
         self._competition_state = None
         self._moved_robot_home = False
-        self._moving_robot_home = False
         self._moved_robot_to_table = False
-        self._moving_robot_to_table = False
         self._entered_tool_changer = False
-        self._entering_tool_changer = False
         self._changed_gripper = False
-        self._changing_gripper = False
         self._exited_tool_changer = False
-        self._exiting_tool_changer = False
         self._activated_gripper = False
-        self._activating_gripper = False
         self._deactivated_gripper = False
-        self._deactivating_gripper = False
         self._moved_robot_to_tray = False
-        self._moving_robot_to_tray = False
         self._moved_tray_to_agv = False
-        self._moving_tray_to_agv = False
-        self._ending_demo = False
 
         self.get_logger().info("Robot Commander Interface Node has been initialised.")
 
