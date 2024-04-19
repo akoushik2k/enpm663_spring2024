@@ -39,10 +39,18 @@ endforeach()
 #-----------------------------
 # C++
 #-----------------------------
-add_executable(moveit_demo_exe src/floor_robot.cpp src/main.cpp)
-ament_target_dependencies(moveit_demo_exe ${MOVEIT_DEMO_INCLUDE_DEPENDS})
+add_executable(moveit_demo_cpp_exe src/floor_robot_cpp_only.cpp src/main_cpp_only.cpp)
+ament_target_dependencies(moveit_demo_cpp_exe ${MOVEIT_DEMO_INCLUDE_DEPENDS})
 
-install(TARGETS moveit_demo_exe
+install(TARGETS moveit_demo_cpp_exe
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+
+add_executable(moveit_demo_cpp_python_exe src/floor_robot_cpp_python.cpp src/main_cpp_python.cpp)
+ament_target_dependencies(moveit_demo_cpp_python_exe ${MOVEIT_DEMO_INCLUDE_DEPENDS})
+
+install(TARGETS moveit_demo_cpp_python_exe
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -58,12 +66,13 @@ ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
 install(PROGRAMS
-  nodes/commander_main.py
+  script/floor_robot_demo.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(TARGETS
-moveit_demo_exe
+moveit_demo_cpp_exe
+moveit_demo_cpp_python_exe
 DESTINATION lib/${PROJECT_NAME}
 )
 

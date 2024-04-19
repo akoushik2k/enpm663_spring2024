@@ -1,21 +1,23 @@
-#include "floor_robot.hpp"
+#include "floor_robot_cpp_python.hpp"
 #include "utils.hpp"
 
 FloorRobot::FloorRobot()
-    : Node("floor_robot_node"),
+    : Node("floor_robot_demo_cpp_python"),
       node_(std::make_shared<rclcpp::Node>("example_group_node")),
       executor_(std::make_shared<rclcpp::executors::MultiThreadedExecutor>()),
-      planning_scene_() {
+      planning_scene_()
+{
   auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(
-      "floor_robot", "robot_description");
+      "floor_robot",
+      "robot_description");
+  floor_robot_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_, mgi_options);
 
-  floor_robot_ =
-      std::make_shared<moveit::planning_interface::MoveGroupInterface>(
-          node_, mgi_options);
-
-  if (floor_robot_->startStateMonitor()) {
+  if (floor_robot_->startStateMonitor())
+  {
     RCLCPP_INFO(this->get_logger(), "Floor Robot State Monitor Started");
-  } else {
+  }
+  else
+  {
     RCLCPP_ERROR(this->get_logger(),
                  "Floor Robot State Monitor Failed to Start");
   }
@@ -23,6 +25,9 @@ FloorRobot::FloorRobot()
   // use upper joint velocity and acceleration limits
   floor_robot_->setMaxAccelerationScalingFactor(1.0);
   floor_robot_->setMaxVelocityScalingFactor(1.0);
+  floor_robot_->setPlanningTime(10.0);
+  floor_robot_->setNumPlanningAttempts(5);
+  floor_robot_->allowReplanning(true);
 
   // callback groups
   rclcpp::SubscriptionOptions options;
@@ -123,44 +128,45 @@ FloorRobot::FloorRobot()
   // service to move the robot to home position
   move_robot_home_srv_ = create_service<std_srvs::srv::Trigger>(
       "/commander/move_robot_home",
-      std::bind(&FloorRobot::move_robot_home_srv_cb_, this,
+      std::bind(&FloorRobot::move_robot_home_srv_cb, this,
                 std::placeholders::_1, std::placeholders::_2));
+  RCLCPP_INFO(this->get_logger(), "Service to move robot home created.");
   // service to move the robot to the table
   move_robot_to_table_srv_ =
       create_service<robot_commander_msgs::srv::MoveRobotToTable>(
           "/commander/move_robot_to_table",
-          std::bind(&FloorRobot::move_robot_to_table_srv_cb_, this,
+          std::bind(&FloorRobot::move_robot_to_table_srv_cb, this,
                     std::placeholders::_1, std::placeholders::_2));
   // service to move the robot to the tray
   move_robot_to_tray_srv_ =
       create_service<robot_commander_msgs::srv::MoveRobotToTray>(
           "/commander/move_robot_to_tray",
-          std::bind(&FloorRobot::move_robot_to_tray_srv_cb_, this,
+          std::bind(&FloorRobot::move_robot_to_tray_srv_cb, this,
                     std::placeholders::_1, std::placeholders::_2));
   // service to move the tray to the agv
   move_tray_to_agv_srv_ =
       create_service<robot_commander_msgs::srv::MoveTrayToAGV>(
           "/commander/move_tray_to_agv",
-          std::bind(&FloorRobot::move_tray_to_agv_srv_cb_, this,
+          std::bind(&FloorRobot::move_tray_to_agv_srv_cb, this,
                     std::placeholders::_1, std::placeholders::_2));
   // service to enter the tool changer
   enter_tool_changer_srv_ =
       create_service<robot_commander_msgs::srv::EnterToolChanger>(
           "/commander/enter_tool_changer",
-          std::bind(&FloorRobot::enter_tool_changer_srv_cb_, this,
+          std::bind(&FloorRobot::enter_tool_changer_srv_cb, this,
                     std::placeholders::_1, std::placeholders::_2));
   // service to exit the tool changer
   exit_tool_changer_srv_ =
       create_service<robot_commander_msgs::srv::ExitToolChanger>(
           "/commander/exit_tool_changer",
-          std::bind(&FloorRobot::exit_tool_changer_srv_cb_, this,
+          std::bind(&FloorRobot::exit_tool_changer_srv_cb, this,
                     std::placeholders::_1, std::placeholders::_2));
 
   // add models to the planning scene
-  add_models_to_planning_scene_();
-
+  add_models_to_planning_scene();
   executor_->add_node(node_);
-  executor_thread_ = std::thread([this]() { this->executor_->spin(); });
+  executor_thread_ = std::thread([this]()
+                                 { this->executor_->spin(); });
 
   RCLCPP_INFO(this->get_logger(), "Initialization successful.");
   RCLCPP_INFO(this->get_logger(), "Waiting for Service calls.");
@@ -170,109 +176,121 @@ FloorRobot::FloorRobot()
 FloorRobot::~FloorRobot() { floor_robot_->~MoveGroupInterface(); }
 
 //=============================================//
-void FloorRobot::move_robot_home_srv_cb_(
+void FloorRobot::move_robot_home_srv_cb(
     std_srvs::srv::Trigger::Request::SharedPtr req,
-    std_srvs::srv::Trigger::Response::SharedPtr res) {
+    std_srvs::srv::Trigger::Response::SharedPtr res)
+{
   RCLCPP_INFO(get_logger(), "Received request to move robot to home position");
-  (void)req;  // remove unused parameter warning
+  (void)req; // remove unused parameter warning
 
-  if (go_home_()) {
+  if (go_home())
+  {
     res->success = true;
     res->message = "Robot moved to home";
-  } else {
+  }
+  else
+  {
     res->success = false;
     res->message = "Unable to move robot to home";
   }
 }
 
 //=============================================//
-bool FloorRobot::move_robot_home_() {
+bool FloorRobot::move_robot_home()
+{
   // Move floor robot to home joint state
   floor_robot_->setNamedTarget("home");
-  return move_to_target_();
+  return move_to_target();
 }
 
 //=============================================//
-void FloorRobot::move_robot_to_table_srv_cb_(
+void FloorRobot::move_robot_to_table_srv_cb(
     robot_commander_msgs::srv::MoveRobotToTable::Request::SharedPtr req,
-    robot_commander_msgs::srv::MoveRobotToTable::Response::SharedPtr res) {
+    robot_commander_msgs::srv::MoveRobotToTable::Response::SharedPtr res)
+{
   RCLCPP_INFO(get_logger(), "Received request to move robot to table");
   auto kts = req->kts;
 
-  if (move_robot_to_table_(kts)) {
+  if (move_robot_to_table(kts))
+  {
     res->success = true;
     res->message = "Robot moved to table";
-  } else {
+  }
+  else
+  {
     res->success = false;
     res->message = "Unable to move robot to table";
   }
 }
 
 //=============================================//
-bool FloorRobot::move_robot_to_table_(int kts) {
+bool FloorRobot::move_robot_to_table(int kts)
+{
   if (kts == robot_commander_msgs::srv::MoveRobotToTable::Request::KTS1)
     floor_robot_->setJointValueTarget(floor_kts1_js_);
   else if (kts == robot_commander_msgs::srv::MoveRobotToTable::Request::KTS2)
     floor_robot_->setJointValueTarget(floor_kts2_js_);
-  else {
+  else
+  {
     RCLCPP_ERROR(get_logger(), "Invalid table number");
     return false;
   }
 
-  move_to_target_();
+  move_to_target();
   return true;
 }
 
 //=============================================//
-void FloorRobot::move_robot_to_tray_srv_cb_(
+void FloorRobot::move_robot_to_tray_srv_cb(
     robot_commander_msgs::srv::MoveRobotToTray::Request::SharedPtr req,
-    robot_commander_msgs::srv::MoveRobotToTray::Response::SharedPtr res) {
+    robot_commander_msgs::srv::MoveRobotToTray::Response::SharedPtr res)
+{
   RCLCPP_INFO(get_logger(), "Received request to move robot to tray");
   auto tray_id = req->tray_id;
   auto tray_pose = req->tray_pose_in_world;
 
-  if (move_robot_to_tray_(tray_id, tray_pose)) {
+  if (move_robot_to_tray(tray_id, tray_pose))
+  {
+    RCLCPP_INFO(get_logger(), "Successfully moved robot to tray");
     res->success = true;
     res->message = "Robot moved to tray";
-  } else {
+  }
+  else
+  {
     res->success = false;
     res->message = "Unable to move robot to tray";
   }
 }
 
 //=============================================//
-bool FloorRobot::move_robot_to_tray_(
-    int tray_id, const geometry_msgs::msg::Pose &tray_pose) {
-  double tray_rotation = Utils::get_yaw_from_pose_(tray_pose);
+bool FloorRobot::move_robot_to_tray(
+    int tray_id, const geometry_msgs::msg::Pose &tray_pose)
+{
+  double tray_rotation = Utils::get_yaw_from_pose(tray_pose);
 
   std::vector<geometry_msgs::msg::Pose> waypoints;
 
   waypoints.push_back(Utils::build_pose(
       tray_pose.position.x, tray_pose.position.y, tray_pose.position.z + 0.2,
-      set_robot_orientation_(tray_rotation)));
+      set_robot_orientation(tray_rotation)));
   waypoints.push_back(Utils::build_pose(tray_pose.position.x,
                                         tray_pose.position.y,
                                         tray_pose.position.z + pick_offset_,
-                                        set_robot_orientation_(tray_rotation)));
+                                        set_robot_orientation(tray_rotation)));
 
-  if (!move_through_waypoints_(waypoints, 0.3, 0.3)) {
+  if (!move_through_waypoints(waypoints, 0.3, 0.3))
+  {
     RCLCPP_ERROR(get_logger(), "Unable to move robot above tray");
     return false;
   }
 
-  // set_gripper_state_(true);
+  // set_gripper_state(true);
 
-  wait_for_attach_completion_(5.0);
+  wait_for_attach_completion(5.0);
 
-  if (floor_gripper_state_.attached) {
-    // Add tray to planning scene
-    // TODO: This will generate all sorts of problems if "kit_tray_3" already
-    // exists in the planning scene It can happen that you need to build 2 kits
-    // and both use tray id 3. You should find a way to name each tray
-    // differently
+  if (floor_gripper_state_.attached)
+  {
     std::string tray_name = "kit_tray_" + std::to_string(tray_id);
-    add_single_model_to_planning_scene_(tray_name, "kit_tray.stl", tray_pose);
-
     // Attach tray to robot in planning scene
     floor_robot_->attachObject(tray_name);
 
@@ -280,9 +298,10 @@ bool FloorRobot::move_robot_to_tray_(
     waypoints.clear();
     waypoints.push_back(Utils::build_pose(
         tray_pose.position.x, tray_pose.position.y, tray_pose.position.z + 0.2,
-        set_robot_orientation_(tray_rotation)));
+        set_robot_orientation(tray_rotation)));
 
-    if (!move_through_waypoints_(waypoints, 0.2, 0.2)) {
+    if (!move_through_waypoints(waypoints, 0.2, 0.2))
+    {
       RCLCPP_ERROR(get_logger(), "Unable to move up");
       return false;
     }
@@ -293,48 +312,55 @@ bool FloorRobot::move_robot_to_tray_(
 }
 
 //=============================================//
-void FloorRobot::move_tray_to_agv_srv_cb_(
+void FloorRobot::move_tray_to_agv_srv_cb(
     robot_commander_msgs::srv::MoveTrayToAGV::Request::SharedPtr req,
-    robot_commander_msgs::srv::MoveTrayToAGV::Response::SharedPtr res) {
+    robot_commander_msgs::srv::MoveTrayToAGV::Response::SharedPtr res)
+{
   RCLCPP_INFO(get_logger(), "Received request to move tray to agv");
   auto agv_number = req->agv_number;
-  if (move_tray_to_agv(agv_number)) {
+  if (move_tray_to_agv(agv_number))
+  {
     res->success = true;
     res->message = "Tray moved to AGV";
-  } else {
+  }
+  else
+  {
     res->success = false;
     res->message = "Unable to move tray to AGV";
   }
 }
 
 //=============================================//
-bool FloorRobot::move_tray_to_agv(int agv_number) {
+bool FloorRobot::move_tray_to_agv(int agv_number)
+{
   std::vector<geometry_msgs::msg::Pose> waypoints;
   floor_robot_->setJointValueTarget(
       "linear_actuator_joint",
       rail_positions_["agv" + std::to_string(agv_number)]);
   floor_robot_->setJointValueTarget("floor_shoulder_pan_joint", 0);
 
-  if (!move_to_target_()) {
+  if (!move_to_target())
+  {
     RCLCPP_ERROR(get_logger(), "Unable to move tray to AGV");
     return false;
   }
 
   auto agv_tray_pose =
-      get_pose_in_world_frame_("agv" + std::to_string(agv_number) + "_tray");
-  auto agv_rotation = Utils::get_yaw_from_pose_(agv_tray_pose);
+      get_pose_in_world_frame("agv" + std::to_string(agv_number) + "_tray");
+  auto agv_rotation = Utils::get_yaw_from_pose(agv_tray_pose);
 
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(
       agv_tray_pose.position.x, agv_tray_pose.position.y,
-      agv_tray_pose.position.z + 0.3, set_robot_orientation_(agv_rotation)));
+      agv_tray_pose.position.z + 0.3, set_robot_orientation(agv_rotation)));
 
   waypoints.push_back(Utils::build_pose(
       agv_tray_pose.position.x, agv_tray_pose.position.y,
       agv_tray_pose.position.z + kit_tray_thickness_ + drop_height_,
-      set_robot_orientation_(agv_rotation)));
+      set_robot_orientation(agv_rotation)));
 
-  if (!move_through_waypoints_(waypoints, 0.2, 0.1)) {
+  if (!move_through_waypoints(waypoints, 0.2, 0.1))
+  {
     RCLCPP_ERROR(get_logger(), "Unable to move tray to AGV");
     return false;
   }
@@ -342,29 +368,34 @@ bool FloorRobot::move_tray_to_agv(int agv_number) {
 }
 
 //=============================================//
-void FloorRobot::enter_tool_changer_srv_cb_(
+void FloorRobot::enter_tool_changer_srv_cb(
     robot_commander_msgs::srv::EnterToolChanger::Request::SharedPtr req,
-    robot_commander_msgs::srv::EnterToolChanger::Response::SharedPtr res) {
+    robot_commander_msgs::srv::EnterToolChanger::Response::SharedPtr res)
+{
   RCLCPP_INFO(get_logger(), "Received request to enter tool changer");
 
   auto changing_station = req->changing_station;
   auto gripper_type = req->gripper_type;
 
-  if (enter_tool_changer_(changing_station, gripper_type)) {
+  if (enter_tool_changer(changing_station, gripper_type))
+  {
     res->success = true;
     res->message = "Entered tool changer";
-  } else {
+  }
+  else
+  {
     res->success = false;
     res->message = "Unable to enter tool changer";
   }
 }
 
 //=============================================//
-bool FloorRobot::enter_tool_changer_(std::string changing_station,
-                                     std::string gripper_type) {
+bool FloorRobot::enter_tool_changer(std::string changing_station,
+                                    std::string gripper_type)
+{
   usleep(10000);
-  auto tc_pose = get_pose_in_world_frame_(changing_station + "_tool_changer_" +
-                                          gripper_type + "_frame");
+  auto tc_pose = get_pose_in_world_frame(changing_station + "_tool_changer_" +
+                                         gripper_type + "_frame");
 
   RCLCPP_INFO_STREAM(get_logger(),
                      "Tool changer pose: " << tc_pose.position.x << ", "
@@ -373,57 +404,66 @@ bool FloorRobot::enter_tool_changer_(std::string changing_station,
   std::vector<geometry_msgs::msg::Pose> waypoints;
   waypoints.push_back(Utils::build_pose(tc_pose.position.x, tc_pose.position.y,
                                         tc_pose.position.z + 0.4,
-                                        set_robot_orientation_(0.0)));
+                                        set_robot_orientation(0.0)));
 
   waypoints.push_back(Utils::build_pose(tc_pose.position.x, tc_pose.position.y,
                                         tc_pose.position.z,
-                                        set_robot_orientation_(0.0)));
+                                        set_robot_orientation(0.0)));
 
-  if (!move_through_waypoints_(waypoints, 0.2, 0.1)) return false;
+  if (!move_through_waypoints(waypoints, 0.2, 0.1))
+    return false;
 
   return true;
 }
 
 //=============================================//
-void FloorRobot::exit_tool_changer_srv_cb_(
+void FloorRobot::exit_tool_changer_srv_cb(
     robot_commander_msgs::srv::ExitToolChanger::Request::SharedPtr req,
-    robot_commander_msgs::srv::ExitToolChanger::Response::SharedPtr res) {
+    robot_commander_msgs::srv::ExitToolChanger::Response::SharedPtr res)
+{
   RCLCPP_INFO(get_logger(), "Received request to exit tool changer");
 
   auto changing_station = req->changing_station;
   auto gripper_type = req->gripper_type;
 
-  if (exit_tool_changer_(changing_station, gripper_type)) {
+  if (exit_tool_changer(changing_station, gripper_type))
+  {
     res->success = true;
     res->message = "Exited tool changer";
-  } else {
+  }
+  else
+  {
     res->success = false;
     res->message = "Unable to exit tool changer";
   }
 }
 
 //=============================================//
-bool FloorRobot::exit_tool_changer_(std::string changing_station,
-                                    std::string gripper_type) {
+bool FloorRobot::exit_tool_changer(std::string changing_station,
+                                   std::string gripper_type)
+{
   // Move gripper into tool changer
-  auto tc_pose = get_pose_in_world_frame_(changing_station + "_tool_changer_" +
-                                          gripper_type + "_frame");
+  auto tc_pose = get_pose_in_world_frame(changing_station + "_tool_changer_" +
+                                         gripper_type + "_frame");
 
   std::vector<geometry_msgs::msg::Pose> waypoints;
 
   waypoints.push_back(Utils::build_pose(tc_pose.position.x, tc_pose.position.y,
                                         tc_pose.position.z + 0.4,
-                                        set_robot_orientation_(0.0)));
+                                        set_robot_orientation(0.0)));
 
-  if (!move_through_waypoints_(waypoints, 0.2, 0.1)) return false;
+  if (!move_through_waypoints(waypoints, 0.2, 0.1))
+    return false;
 
   return true;
 }
 
 //=============================================//
-bool FloorRobot::start_competition_() {
+bool FloorRobot::start_competition()
+{
   // Wait for competition state to be ready
-  while (competition_state_ != ariac_msgs::msg::CompetitionState::READY) {
+  while (competition_state_ != ariac_msgs::msg::CompetitionState::READY)
+  {
   }
 
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client;
@@ -441,7 +481,8 @@ bool FloorRobot::start_competition_() {
 }
 
 //=============================================//
-bool FloorRobot::end_competition_() {
+bool FloorRobot::end_competition()
+{
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client;
 
   std::string srv_name = "/ariac/end_competition";
@@ -457,7 +498,8 @@ bool FloorRobot::end_competition_() {
 }
 
 //=============================================//
-bool FloorRobot::lock_tray_(int agv_num) {
+bool FloorRobot::lock_tray(int agv_num)
+{
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client;
 
   std::string srv_name = "/ariac/agv" + std::to_string(agv_num) + "_lock_tray";
@@ -473,7 +515,8 @@ bool FloorRobot::lock_tray_(int agv_num) {
 }
 
 //=============================================//
-bool FloorRobot::move_agv_(int agv_num, int destination) {
+bool FloorRobot::move_agv(int agv_num, int destination)
+{
   rclcpp::Client<ariac_msgs::srv::MoveAGV>::SharedPtr client;
 
   std::string srv_name = "/ariac/move_agv" + std::to_string(agv_num);
@@ -491,40 +534,50 @@ bool FloorRobot::move_agv_(int agv_num, int destination) {
 
 //=============================================//
 void FloorRobot::agv1_status_cb(
-    const ariac_msgs::msg::AGVStatus::ConstSharedPtr msg) {
+    const ariac_msgs::msg::AGVStatus::ConstSharedPtr msg)
+{
   agv_locations_[1] = msg->location;
 }
 
 //=============================================//
 void FloorRobot::agv2_status_cb(
-    const ariac_msgs::msg::AGVStatus::ConstSharedPtr msg) {
+    const ariac_msgs::msg::AGVStatus::ConstSharedPtr msg)
+{
   agv_locations_[2] = msg->location;
 }
 
 //=============================================//
 void FloorRobot::agv3_status_cb(
-    const ariac_msgs::msg::AGVStatus::ConstSharedPtr msg) {
+    const ariac_msgs::msg::AGVStatus::ConstSharedPtr msg)
+{
   agv_locations_[3] = msg->location;
 }
 
 //=============================================//
 void FloorRobot::agv4_status_cb(
-    const ariac_msgs::msg::AGVStatus::ConstSharedPtr msg) {
+    const ariac_msgs::msg::AGVStatus::ConstSharedPtr msg)
+{
   agv_locations_[4] = msg->location;
 }
 
 //=============================================//
-void FloorRobot::orders_cb(const ariac_msgs::msg::Order::ConstSharedPtr msg) {
+void FloorRobot::orders_cb(const ariac_msgs::msg::Order::ConstSharedPtr msg)
+{
   orders_.push_back(*msg);
 }
 
 //=============================================//
 void FloorRobot::floor_robot_sub_cb(
-    const std_msgs::msg::String::ConstSharedPtr msg) {
-  if (msg->data == "go_home") {
-    if (go_home_()) {
+    const std_msgs::msg::String::ConstSharedPtr msg)
+{
+  if (msg->data == "go_home")
+  {
+    if (go_home())
+    {
       RCLCPP_INFO(get_logger(), "Going home");
-    } else {
+    }
+    else
+    {
       RCLCPP_ERROR(get_logger(), "Unable to go home");
     }
   }
@@ -532,14 +585,17 @@ void FloorRobot::floor_robot_sub_cb(
 
 //=============================================//
 void FloorRobot::competition_state_cb(
-    const ariac_msgs::msg::CompetitionState::ConstSharedPtr msg) {
+    const ariac_msgs::msg::CompetitionState::ConstSharedPtr msg)
+{
   competition_state_ = msg->competition_state;
 }
 
 //=============================================//
 void FloorRobot::kts1_camera_cb(
-    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg) {
-  if (!kts1_camera_received_data) {
+    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
+{
+  if (!kts1_camera_received_data)
+  {
     RCLCPP_INFO(get_logger(), "Received data from kts1 camera");
     kts1_camera_received_data = true;
   }
@@ -550,8 +606,10 @@ void FloorRobot::kts1_camera_cb(
 
 //=============================================//
 void FloorRobot::kts2_camera_cb(
-    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg) {
-  if (!kts2_camera_received_data) {
+    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
+{
+  if (!kts2_camera_received_data)
+  {
     RCLCPP_INFO(get_logger(), "Received data from kts2 camera");
     kts2_camera_received_data = true;
   }
@@ -562,8 +620,10 @@ void FloorRobot::kts2_camera_cb(
 
 //=============================================//
 void FloorRobot::left_bins_camera_cb(
-    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg) {
-  if (!left_bins_camera_received_data) {
+    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
+{
+  if (!left_bins_camera_received_data)
+  {
     RCLCPP_INFO(get_logger(), "Received data from left bins camera");
     left_bins_camera_received_data = true;
   }
@@ -574,8 +634,10 @@ void FloorRobot::left_bins_camera_cb(
 
 //=============================================//
 void FloorRobot::right_bins_camera_cb(
-    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg) {
-  if (!right_bins_camera_received_data) {
+    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
+{
+  if (!right_bins_camera_received_data)
+  {
     RCLCPP_INFO(get_logger(), "Received data from right bins camera");
     right_bins_camera_received_data = true;
   }
@@ -586,20 +648,25 @@ void FloorRobot::right_bins_camera_cb(
 
 //=============================================//
 void FloorRobot::floor_gripper_state_cb(
-    const ariac_msgs::msg::VacuumGripperState::ConstSharedPtr msg) {
+    const ariac_msgs::msg::VacuumGripperState::ConstSharedPtr msg)
+{
   floor_gripper_state_ = *msg;
   // RCLCPP_INFO_STREAM(get_logger(), "Floor gripper state: " <<
   // floor_gripper_state_.attached);
 }
 
-geometry_msgs::msg::Pose FloorRobot::get_pose_in_world_frame_(
-    std::string frame_id) {
+geometry_msgs::msg::Pose FloorRobot::get_pose_in_world_frame(
+    std::string frame_id)
+{
   geometry_msgs::msg::TransformStamped t;
   geometry_msgs::msg::Pose pose;
 
-  try {
+  try
+  {
     t = tf_buffer->lookupTransform("world", frame_id, tf2::TimePointZero);
-  } catch (const tf2::TransformException &ex) {
+  }
+  catch (const tf2::TransformException &ex)
+  {
     RCLCPP_ERROR(get_logger(), "Could not get transform");
   }
 
@@ -612,9 +679,10 @@ geometry_msgs::msg::Pose FloorRobot::get_pose_in_world_frame_(
 }
 
 //=============================================//
-void FloorRobot::add_single_model_to_planning_scene_(
+void FloorRobot::add_single_model_to_planning_scene(
     std::string name, std::string mesh_file,
-    geometry_msgs::msg::Pose model_pose) {
+    geometry_msgs::msg::Pose model_pose)
+{
   moveit_msgs::msg::CollisionObject collision;
 
   collision.id = name;
@@ -646,7 +714,8 @@ void FloorRobot::add_single_model_to_planning_scene_(
 }
 
 //=============================================//
-void FloorRobot::add_models_to_planning_scene_() {
+void FloorRobot::add_models_to_planning_scene()
+{
   // Add bins
   std::map<std::string, std::pair<double, double>> bin_positions = {
       {"bin1", std::pair<double, double>(-1.9, 3.375)},
@@ -659,13 +728,14 @@ void FloorRobot::add_models_to_planning_scene_() {
       {"bin8", std::pair<double, double>(-2.65, -3.375)}};
 
   geometry_msgs::msg::Pose bin_pose;
-  for (auto const &bin : bin_positions) {
+  for (auto const &bin : bin_positions)
+  {
     bin_pose.position.x = bin.second.first;
     bin_pose.position.y = bin.second.second;
     bin_pose.position.z = 0;
     bin_pose.orientation = Utils::get_quaternion_from_euler(0, 0, 3.14159);
 
-    add_single_model_to_planning_scene_(bin.first, "bin.stl", bin_pose);
+    add_single_model_to_planning_scene(bin.first, "bin.stl", bin_pose);
   }
 
   // Add assembly stations
@@ -678,15 +748,16 @@ void FloorRobot::add_models_to_planning_scene_() {
       };
 
   geometry_msgs::msg::Pose assembly_station_pose;
-  for (auto const &station : assembly_station_positions) {
+  for (auto const &station : assembly_station_positions)
+  {
     assembly_station_pose.position.x = station.second.first;
     assembly_station_pose.position.y = station.second.second;
     assembly_station_pose.position.z = 0;
     assembly_station_pose.orientation =
         Utils::get_quaternion_from_euler(0, 0, 0);
 
-    add_single_model_to_planning_scene_(station.first, "assembly_station.stl",
-                                        assembly_station_pose);
+    add_single_model_to_planning_scene(station.first, "assembly_station.stl",
+                                       assembly_station_pose);
   }
 
   // Add assembly briefcases
@@ -698,15 +769,16 @@ void FloorRobot::add_models_to_planning_scene_() {
   };
 
   geometry_msgs::msg::Pose assembly_insert_pose;
-  for (auto const &insert : assembly_insert_positions) {
+  for (auto const &insert : assembly_insert_positions)
+  {
     assembly_insert_pose.position.x = insert.second.first;
     assembly_insert_pose.position.y = insert.second.second;
     assembly_insert_pose.position.z = 1.011;
     assembly_insert_pose.orientation =
         Utils::get_quaternion_from_euler(0, 0, 0);
 
-    add_single_model_to_planning_scene_(insert.first, "assembly_insert.stl",
-                                        assembly_insert_pose);
+    add_single_model_to_planning_scene(insert.first, "assembly_insert.stl",
+                                       assembly_insert_pose);
   }
 
   geometry_msgs::msg::Pose conveyor_pose = geometry_msgs::msg::Pose();
@@ -715,8 +787,8 @@ void FloorRobot::add_models_to_planning_scene_() {
   conveyor_pose.position.z = 0;
   conveyor_pose.orientation = Utils::get_quaternion_from_euler(0, 0, 0);
 
-  add_single_model_to_planning_scene_("conveyor", "conveyor.stl",
-                                      conveyor_pose);
+  add_single_model_to_planning_scene("conveyor", "conveyor.stl",
+                                     conveyor_pose);
 
   geometry_msgs::msg::Pose kts1_table_pose;
   kts1_table_pose.position.x = -1.3;
@@ -724,8 +796,8 @@ void FloorRobot::add_models_to_planning_scene_() {
   kts1_table_pose.position.z = 0;
   kts1_table_pose.orientation = Utils::get_quaternion_from_euler(0, 0, 3.14159);
 
-  add_single_model_to_planning_scene_("kts1_table", "kit_tray_table.stl",
-                                      kts1_table_pose);
+  add_single_model_to_planning_scene("kts1_table", "kit_tray_table.stl",
+                                     kts1_table_pose);
 
   geometry_msgs::msg::Pose kts2_table_pose;
   kts2_table_pose.position.x = -1.3;
@@ -733,13 +805,14 @@ void FloorRobot::add_models_to_planning_scene_() {
   kts2_table_pose.position.z = 0;
   kts2_table_pose.orientation = Utils::get_quaternion_from_euler(0, 0, 0);
 
-  add_single_model_to_planning_scene_("kts2_table", "kit_tray_table.stl",
-                                      kts2_table_pose);
+  add_single_model_to_planning_scene("kts2_table", "kit_tray_table.stl",
+                                     kts2_table_pose);
 }
 
 //=============================================//
-geometry_msgs::msg::Quaternion FloorRobot::set_robot_orientation_(
-    double rotation) {
+geometry_msgs::msg::Quaternion FloorRobot::set_robot_orientation(
+    double rotation)
+{
   tf2::Quaternion tf_q;
   tf_q.setRPY(0, 3.14159, rotation);
 
@@ -754,27 +827,33 @@ geometry_msgs::msg::Quaternion FloorRobot::set_robot_orientation_(
 }
 
 //=============================================//
-bool FloorRobot::move_to_target_() {
+bool FloorRobot::move_to_target()
+{
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   bool success = static_cast<bool>(floor_robot_->plan(plan));
 
-  if (success) {
+  if (success)
+  {
     return static_cast<bool>(floor_robot_->execute(plan));
-  } else {
+  }
+  else
+  {
     RCLCPP_ERROR(get_logger(), "Unable to generate plan");
     return false;
   }
 }
 
 //=============================================//
-bool FloorRobot::move_through_waypoints_(
-    std::vector<geometry_msgs::msg::Pose> waypoints, double vsf, double asf) {
+bool FloorRobot::move_through_waypoints(
+    std::vector<geometry_msgs::msg::Pose> waypoints, double vsf, double asf)
+{
   moveit_msgs::msg::RobotTrajectory trajectory;
 
   double path_fraction =
       floor_robot_->computeCartesianPath(waypoints, 0.01, 0.0, trajectory);
 
-  if (path_fraction < 0.9) {
+  if (path_fraction < 0.9)
+  {
     RCLCPP_ERROR(get_logger(),
                  "Unable to generate trajectory through waypoints");
     return false;
@@ -791,13 +870,15 @@ bool FloorRobot::move_through_waypoints_(
 }
 
 //=============================================//
-void FloorRobot::wait_for_attach_completion_(double timeout) {
+void FloorRobot::wait_for_attach_completion(double timeout)
+{
   // Wait for part to be attached
   rclcpp::Time start = now();
   std::vector<geometry_msgs::msg::Pose> waypoints;
   geometry_msgs::msg::Pose starting_pose = floor_robot_->getCurrentPose().pose;
 
-  while (!floor_gripper_state_.attached) {
+  while (!floor_gripper_state_.attached)
+  {
     RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000,
                          "Waiting for gripper attach");
 
@@ -805,14 +886,15 @@ void FloorRobot::wait_for_attach_completion_(double timeout) {
     starting_pose.position.z -= 0.001;
     waypoints.push_back(starting_pose);
 
-    move_through_waypoints_(waypoints, 0.1, 0.1);
+    move_through_waypoints(waypoints, 0.1, 0.1);
 
     usleep(200);
 
     // if (floor_gripper_state_.attached)
     //     return;
 
-    if (now() - start > rclcpp::Duration::from_seconds(timeout)) {
+    if (now() - start > rclcpp::Duration::from_seconds(timeout))
+    {
       RCLCPP_ERROR(get_logger(), "Unable to pick up object");
       return;
     }
@@ -820,15 +902,18 @@ void FloorRobot::wait_for_attach_completion_(double timeout) {
 }
 
 //=============================================//
-bool FloorRobot::go_home_() {
+bool FloorRobot::go_home()
+{
   // Move floor robot to home joint state
   floor_robot_->setNamedTarget("home");
-  return move_to_target_();
+  return move_to_target();
 }
 
 //=============================================//
-bool FloorRobot::set_gripper_state_(bool enable) {
-  if (floor_gripper_state_.enabled == enable) {
+bool FloorRobot::set_gripper_state(bool enable)
+{
+  if (floor_gripper_state_.enabled == enable)
+  {
     if (floor_gripper_state_.enabled)
       RCLCPP_INFO(get_logger(), "Already enabled");
     else
@@ -845,7 +930,8 @@ bool FloorRobot::set_gripper_state_(bool enable) {
   auto result = floor_robot_gripper_enable_->async_send_request(request);
   result.wait();
 
-  if (!result.get()->success) {
+  if (!result.get()->success)
+  {
     RCLCPP_ERROR(get_logger(), "Error calling gripper enable service");
     return false;
   }
@@ -854,30 +940,35 @@ bool FloorRobot::set_gripper_state_(bool enable) {
 }
 
 //=============================================//
-bool FloorRobot::change_gripper_(std::string changing_station,
-                                 std::string gripper_type) {
+bool FloorRobot::change_gripper(std::string changing_station,
+                                std::string gripper_type)
+{
   // Move gripper into tool changer
-  auto tc_pose = get_pose_in_world_frame_(changing_station + "_tool_changer_" +
-                                          gripper_type + "_frame");
+  auto tc_pose = get_pose_in_world_frame(changing_station + "_tool_changer_" +
+                                         gripper_type + "_frame");
 
   std::vector<geometry_msgs::msg::Pose> waypoints;
   waypoints.push_back(Utils::build_pose(tc_pose.position.x, tc_pose.position.y,
                                         tc_pose.position.z + 0.4,
-                                        set_robot_orientation_(0.0)));
+                                        set_robot_orientation(0.0)));
 
   waypoints.push_back(Utils::build_pose(tc_pose.position.x, tc_pose.position.y,
                                         tc_pose.position.z,
-                                        set_robot_orientation_(0.0)));
+                                        set_robot_orientation(0.0)));
 
-  if (!move_through_waypoints_(waypoints, 0.2, 0.1)) return false;
+  if (!move_through_waypoints(waypoints, 0.2, 0.1))
+    return false;
 
   // Call service to change gripper
   auto request = std::make_shared<ariac_msgs::srv::ChangeGripper::Request>();
 
-  if (gripper_type == "trays") {
+  if (gripper_type == "trays")
+  {
     request->gripper_type =
         ariac_msgs::srv::ChangeGripper::Request::TRAY_GRIPPER;
-  } else if (gripper_type == "parts") {
+  }
+  else if (gripper_type == "parts")
+  {
     request->gripper_type =
         ariac_msgs::srv::ChangeGripper::Request::PART_GRIPPER;
   }
@@ -885,7 +976,8 @@ bool FloorRobot::change_gripper_(std::string changing_station,
   auto future = floor_robot_tool_changer_->async_send_request(request);
 
   future.wait();
-  if (!future.get()->success) {
+  if (!future.get()->success)
+  {
     RCLCPP_ERROR(get_logger(), "Error calling gripper change service");
     return false;
   }
@@ -893,23 +985,27 @@ bool FloorRobot::change_gripper_(std::string changing_station,
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(tc_pose.position.x, tc_pose.position.y,
                                         tc_pose.position.z + 0.4,
-                                        set_robot_orientation_(0.0)));
+                                        set_robot_orientation(0.0)));
 
-  if (!move_through_waypoints_(waypoints, 0.2, 0.1)) return false;
+  if (!move_through_waypoints(waypoints, 0.2, 0.1))
+    return false;
 
   return true;
 }
 
 //=============================================//
-bool FloorRobot::pick_and_place_tray_(int tray_id, int agv_num) {
+bool FloorRobot::pick_and_place_tray(int tray_id, int agv_num)
+{
   // Check if kit tray is on one of the two tables
   geometry_msgs::msg::Pose tray_pose;
   std::string station;
   bool found_tray = false;
 
   // Check table 1
-  for (auto tray : kts1_trays_) {
-    if (tray.id == tray_id) {
+  for (auto tray : kts1_trays_)
+  {
+    if (tray.id == tray_id)
+    {
       station = "kts1";
       tray_pose = Utils::multiply_poses(kts1_camera_pose_, tray.pose);
       found_tray = true;
@@ -917,9 +1013,12 @@ bool FloorRobot::pick_and_place_tray_(int tray_id, int agv_num) {
     }
   }
   // Check table 2
-  if (!found_tray) {
-    for (auto tray : kts2_trays_) {
-      if (tray.id == tray_id) {
+  if (!found_tray)
+  {
+    for (auto tray : kts2_trays_)
+    {
+      if (tray.id == tray_id)
+      {
         station = "kts2";
         tray_pose = Utils::multiply_poses(kts2_camera_pose_, tray.pose);
         found_tray = true;
@@ -927,21 +1026,26 @@ bool FloorRobot::pick_and_place_tray_(int tray_id, int agv_num) {
       }
     }
   }
-  if (!found_tray) return false;
+  if (!found_tray)
+    return false;
 
-  double tray_rotation = Utils::get_yaw_from_pose_(tray_pose);
+  double tray_rotation = Utils::get_yaw_from_pose(tray_pose);
 
   // Move floor robot to the corresponding kit tray table
-  if (station == "kts1") {
+  if (station == "kts1")
+  {
     floor_robot_->setJointValueTarget(floor_kts1_js_);
-  } else {
+  }
+  else
+  {
     floor_robot_->setJointValueTarget(floor_kts2_js_);
   }
-  move_to_target_();
+  move_to_target();
 
   // Change gripper to tray gripper
-  if (floor_gripper_state_.type != "tray_gripper") {
-    change_gripper_(station, "trays");
+  if (floor_gripper_state_.type != "tray_gripper")
+  {
+    change_gripper(station, "trays");
   }
 
   // Move to tray
@@ -949,53 +1053,53 @@ bool FloorRobot::pick_and_place_tray_(int tray_id, int agv_num) {
 
   waypoints.push_back(Utils::build_pose(
       tray_pose.position.x, tray_pose.position.y, tray_pose.position.z + 0.2,
-      set_robot_orientation_(tray_rotation)));
+      set_robot_orientation(tray_rotation)));
   waypoints.push_back(Utils::build_pose(tray_pose.position.x,
                                         tray_pose.position.y,
                                         tray_pose.position.z + pick_offset_,
-                                        set_robot_orientation_(tray_rotation)));
-  move_through_waypoints_(waypoints, 0.3, 0.3);
+                                        set_robot_orientation(tray_rotation)));
+  move_through_waypoints(waypoints, 0.3, 0.3);
 
-  set_gripper_state_(true);
+  set_gripper_state(true);
 
-  wait_for_attach_completion_(3.0);
+  wait_for_attach_completion(3.0);
 
   // Add kit tray to planning scene
   std::string tray_name = "kit_tray_" + std::to_string(tray_id);
-  add_single_model_to_planning_scene_(tray_name, "kit_tray.stl", tray_pose);
+  add_single_model_to_planning_scene(tray_name, "kit_tray.stl", tray_pose);
   floor_robot_->attachObject(tray_name);
 
   // Move up slightly
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(
       tray_pose.position.x, tray_pose.position.y, tray_pose.position.z + 0.2,
-      set_robot_orientation_(tray_rotation)));
-  move_through_waypoints_(waypoints, 0.3, 0.3);
+      set_robot_orientation(tray_rotation)));
+  move_through_waypoints(waypoints, 0.3, 0.3);
 
   floor_robot_->setJointValueTarget(
       "linear_actuator_joint",
       rail_positions_["agv" + std::to_string(agv_num)]);
   floor_robot_->setJointValueTarget("floor_shoulder_pan_joint", 0);
 
-  move_to_target_();
+  move_to_target();
 
   auto agv_tray_pose =
-      get_pose_in_world_frame_("agv" + std::to_string(agv_num) + "_tray");
-  auto agv_rotation = Utils::get_yaw_from_pose_(agv_tray_pose);
+      get_pose_in_world_frame("agv" + std::to_string(agv_num) + "_tray");
+  auto agv_rotation = Utils::get_yaw_from_pose(agv_tray_pose);
 
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(
       agv_tray_pose.position.x, agv_tray_pose.position.y,
-      agv_tray_pose.position.z + 0.3, set_robot_orientation_(agv_rotation)));
+      agv_tray_pose.position.z + 0.3, set_robot_orientation(agv_rotation)));
 
   waypoints.push_back(Utils::build_pose(
       agv_tray_pose.position.x, agv_tray_pose.position.y,
       agv_tray_pose.position.z + kit_tray_thickness_ + drop_height_,
-      set_robot_orientation_(agv_rotation)));
+      set_robot_orientation(agv_rotation)));
 
-  move_through_waypoints_(waypoints, 0.2, 0.1);
+  move_through_waypoints(waypoints, 0.2, 0.1);
 
-  set_gripper_state_(false);
+  set_gripper_state(false);
 
   // object is detached in the planning scene
   floor_robot_->detachObject(tray_name);
@@ -1006,15 +1110,16 @@ bool FloorRobot::pick_and_place_tray_(int tray_id, int agv_num) {
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(
       agv_tray_pose.position.x, agv_tray_pose.position.y,
-      agv_tray_pose.position.z + 0.3, set_robot_orientation_(0)));
+      agv_tray_pose.position.z + 0.3, set_robot_orientation(0)));
 
-  move_through_waypoints_(waypoints, 0.2, 0.1);
+  move_through_waypoints(waypoints, 0.2, 0.1);
 
   return true;
 }
 
 //=============================================//
-bool FloorRobot::pick_bin_part_(ariac_msgs::msg::Part part_to_pick) {
+bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick)
+{
   RCLCPP_INFO_STREAM(get_logger(), "Attempting to pick a "
                                        << part_colors_[part_to_pick.color]
                                        << " "
@@ -1026,9 +1131,11 @@ bool FloorRobot::pick_bin_part_(ariac_msgs::msg::Part part_to_pick) {
   std::string bin_side;
 
   // Check left bins
-  for (auto part : left_bins_parts_) {
+  for (auto part : left_bins_parts_)
+  {
     if (part.part.type == part_to_pick.type &&
-        part.part.color == part_to_pick.color) {
+        part.part.color == part_to_pick.color)
+    {
       part_pose = Utils::multiply_poses(left_bins_camera_pose_, part.pose);
       found_part = true;
       bin_side = "left_bins";
@@ -1036,10 +1143,13 @@ bool FloorRobot::pick_bin_part_(ariac_msgs::msg::Part part_to_pick) {
     }
   }
   // Check right bins
-  if (!found_part) {
-    for (auto part : right_bins_parts_) {
+  if (!found_part)
+  {
+    for (auto part : right_bins_parts_)
+    {
       if (part.part.type == part_to_pick.type &&
-          part.part.color == part_to_pick.color) {
+          part.part.color == part_to_pick.color)
+      {
         part_pose = Utils::multiply_poses(right_bins_camera_pose_, part.pose);
         found_part = true;
         bin_side = "right_bins";
@@ -1047,58 +1157,66 @@ bool FloorRobot::pick_bin_part_(ariac_msgs::msg::Part part_to_pick) {
       }
     }
   }
-  if (!found_part) {
+  if (!found_part)
+  {
     RCLCPP_ERROR(get_logger(), "Unable to locate part");
     return false;
   }
 
-  double part_rotation = Utils::get_yaw_from_pose_(part_pose);
+  double part_rotation = Utils::get_yaw_from_pose(part_pose);
 
   // Change gripper at location closest to part
-  if (floor_gripper_state_.type != "part_gripper") {
+  if (floor_gripper_state_.type != "part_gripper")
+  {
     std::string station;
-    if (part_pose.position.y < 0) {
+    if (part_pose.position.y < 0)
+    {
       station = "kts1";
-    } else {
+    }
+    else
+    {
       station = "kts2";
     }
 
     // Move floor robot to the corresponding kit tray table
-    if (station == "kts1") {
+    if (station == "kts1")
+    {
       floor_robot_->setJointValueTarget(floor_kts1_js_);
-    } else {
+    }
+    else
+    {
       floor_robot_->setJointValueTarget(floor_kts2_js_);
     }
-    move_to_target_();
+    move_to_target();
 
-    change_gripper_(station, "parts");
+    change_gripper(station, "parts");
   }
 
   floor_robot_->setJointValueTarget("linear_actuator_joint",
-                                    rail_positions_[bin_side]);
+                                   rail_positions_[bin_side]);
   floor_robot_->setJointValueTarget("floor_shoulder_pan_joint", 0);
-  move_to_target_();
+  move_to_target();
 
   std::vector<geometry_msgs::msg::Pose> waypoints;
   waypoints.push_back(Utils::build_pose(
       part_pose.position.x, part_pose.position.y, part_pose.position.z + 0.5,
-      set_robot_orientation_(part_rotation)));
+      set_robot_orientation(part_rotation)));
 
   waypoints.push_back(Utils::build_pose(
       part_pose.position.x, part_pose.position.y,
       part_pose.position.z + part_heights_[part_to_pick.type] + pick_offset_,
-      set_robot_orientation_(part_rotation)));
+      set_robot_orientation(part_rotation)));
 
-  move_through_waypoints_(waypoints, 0.3, 0.3);
+  move_through_waypoints(waypoints, 0.3, 0.3);
 
-  set_gripper_state_(true);
+  set_gripper_state(true);
 
-  wait_for_attach_completion_(3.0);
+  wait_for_attach_completion(3.0);
 
   // Add part to planning scene
   std::string part_name =
       part_colors_[part_to_pick.color] + "_" + part_types_[part_to_pick.type];
-  add_single_model_to_planning_scene_(
+  add_single_model_to_planning_scene(
       part_name, part_types_[part_to_pick.type] + ".stl", part_pose);
   floor_robot_->attachObject(part_name);
   floor_robot_attached_part_ = part_to_pick;
@@ -1107,16 +1225,18 @@ bool FloorRobot::pick_bin_part_(ariac_msgs::msg::Part part_to_pick) {
   waypoints.clear();
   waypoints.push_back(
       Utils::build_pose(part_pose.position.x, part_pose.position.y,
-                        part_pose.position.z + 0.3, set_robot_orientation_(0)));
+                        part_pose.position.z + 0.3, set_robot_orientation(0)));
 
-  move_through_waypoints_(waypoints, 0.3, 0.3);
+  move_through_waypoints(waypoints, 0.3, 0.3);
 
   return true;
 }
 
 //=============================================//
-bool FloorRobot::place_part_in_tray_(int agv_num, int quadrant) {
-  if (!floor_gripper_state_.attached) {
+bool FloorRobot::place_part_in_tray(int agv_num, int quadrant)
+{
+  if (!floor_gripper_state_.attached)
+  {
     RCLCPP_ERROR(get_logger(), "No part attached");
     return false;
   }
@@ -1126,11 +1246,11 @@ bool FloorRobot::place_part_in_tray_(int agv_num, int quadrant) {
       "linear_actuator_joint",
       rail_positions_["agv" + std::to_string(agv_num)]);
   floor_robot_->setJointValueTarget("floor_shoulder_pan_joint", 0);
-  move_to_target_();
+  move_to_target();
 
   // Determine target pose for part based on agv_tray pose
   auto agv_tray_pose =
-      get_pose_in_world_frame_("agv" + std::to_string(agv_num) + "_tray");
+      get_pose_in_world_frame("agv" + std::to_string(agv_num) + "_tray");
 
   auto part_drop_offset = Utils::build_pose(quad_offsets_[quadrant].first,
                                             quad_offsets_[quadrant].second, 0.0,
@@ -1142,18 +1262,18 @@ bool FloorRobot::place_part_in_tray_(int agv_num, int quadrant) {
 
   waypoints.push_back(Utils::build_pose(
       part_drop_pose.position.x, part_drop_pose.position.y,
-      part_drop_pose.position.z + 0.3, set_robot_orientation_(0)));
+      part_drop_pose.position.z + 0.3, set_robot_orientation(0)));
 
   waypoints.push_back(Utils::build_pose(
       part_drop_pose.position.x, part_drop_pose.position.y,
       part_drop_pose.position.z +
           part_heights_[floor_robot_attached_part_.type] + drop_height_,
-      set_robot_orientation_(0)));
+      set_robot_orientation(0)));
 
-  move_through_waypoints_(waypoints, 0.3, 0.3);
+  move_through_waypoints(waypoints, 0.3, 0.3);
 
   // Drop part in quadrant
-  set_gripper_state_(false);
+  set_gripper_state(false);
 
   std::string part_name = part_colors_[floor_robot_attached_part_.color] + "_" +
                           part_types_[floor_robot_attached_part_.type];
@@ -1162,34 +1282,43 @@ bool FloorRobot::place_part_in_tray_(int agv_num, int quadrant) {
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(
       part_drop_pose.position.x, part_drop_pose.position.y,
-      part_drop_pose.position.z + 0.3, set_robot_orientation_(0)));
+      part_drop_pose.position.z + 0.3, set_robot_orientation(0)));
 
-  move_through_waypoints_(waypoints, 0.2, 0.1);
+  move_through_waypoints(waypoints, 0.2, 0.1);
 
   return true;
 }
 
 //=============================================//
-bool FloorRobot::complete_orders_() {
+bool FloorRobot::complete_orders()
+{
   // Wait for first order to be published
-  while (orders_.size() == 0) {
+  while (orders_.size() == 0)
+  {
   }
 
   bool success;
-  while (true) {
-    if (competition_state_ == ariac_msgs::msg::CompetitionState::ENDED) {
+  while (true)
+  {
+    if (competition_state_ == ariac_msgs::msg::CompetitionState::ENDED)
+    {
       success = false;
       break;
     }
 
-    if (orders_.size() == 0) {
+    if (orders_.size() == 0)
+    {
       if (competition_state_ !=
-          ariac_msgs::msg::CompetitionState::ORDER_ANNOUNCEMENTS_DONE) {
+          ariac_msgs::msg::CompetitionState::ORDER_ANNOUNCEMENTS_DONE)
+      {
         // wait for more orders
         RCLCPP_INFO(get_logger(), "Waiting for orders...");
-        while (orders_.size() == 0) {
+        while (orders_.size() == 0)
+        {
         }
-      } else {
+      }
+      else
+      {
         RCLCPP_INFO(get_logger(), "Completed all orders");
         success = true;
         break;
@@ -1200,16 +1329,20 @@ bool FloorRobot::complete_orders_() {
     orders_.erase(orders_.begin());
     int kitting_agv_num = -1;
 
-    if (current_order_.type == ariac_msgs::msg::Order::KITTING) {
-      FloorRobot::complete_kitting_task_(current_order_.kitting_task);
+    if (current_order_.type == ariac_msgs::msg::Order::KITTING)
+    {
+      FloorRobot::complete_kitting_task(current_order_.kitting_task);
       kitting_agv_num = current_order_.kitting_task.agv_number;
-    } else {
+    }
+    else
+    {
       RCLCPP_INFO(get_logger(), "Ignoring non-kitting tasks.");
     }
 
     // loop until the AGV is at the warehouse
     auto agv_location = -1;
-    while (agv_location != ariac_msgs::msg::AGVStatus::WAREHOUSE) {
+    while (agv_location != ariac_msgs::msg::AGVStatus::WAREHOUSE)
+    {
       if (kitting_agv_num == 1)
         agv_location = agv_locations_[1];
       else if (kitting_agv_num == 2)
@@ -1220,13 +1353,14 @@ bool FloorRobot::complete_orders_() {
         agv_location = agv_locations_[4];
     }
 
-    FloorRobot::submit_order_(current_order_.id);
+    FloorRobot::submit_order(current_order_.id);
   }
   return success;
 }
 
 //=============================================//
-bool FloorRobot::submit_order_(std::string order_id) {
+bool FloorRobot::submit_order(std::string order_id)
+{
   rclcpp::Client<ariac_msgs::srv::SubmitOrder>::SharedPtr client;
   std::string srv_name = "/ariac/submit_order";
   client = this->create_client<ariac_msgs::srv::SubmitOrder>(srv_name);
@@ -1240,14 +1374,16 @@ bool FloorRobot::submit_order_(std::string order_id) {
 }
 
 //=============================================//
-bool FloorRobot::complete_kitting_task_(ariac_msgs::msg::KittingTask task) {
-  go_home_();
+bool FloorRobot::complete_kitting_task(ariac_msgs::msg::KittingTask task)
+{
+  go_home();
 
-  pick_and_place_tray_(task.tray_id, task.agv_number);
+  pick_and_place_tray(task.tray_id, task.agv_number);
 
-  for (auto kit_part : task.parts) {
-    pick_bin_part_(kit_part.part);
-    place_part_in_tray_(task.agv_number, kit_part.quadrant);
+  for (auto kit_part : task.parts)
+  {
+    pick_bin_part(kit_part.part);
+    place_part_in_tray(task.agv_number, kit_part.quadrant);
   }
 
   // Check quality
@@ -1257,12 +1393,13 @@ bool FloorRobot::complete_kitting_task_(ariac_msgs::msg::KittingTask task) {
   auto result = quality_checker_->async_send_request(request);
   result.wait();
 
-  if (!result.get()->all_passed) {
+  if (!result.get()->all_passed)
+  {
     RCLCPP_ERROR(get_logger(), "Issue with shipment");
   }
 
   // move agv to destination
-  move_agv_(task.agv_number, task.destination);
+  move_agv(task.agv_number, task.destination);
 
   return true;
 }

@@ -108,7 +108,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true  Successfully started the competition
    * @return false  Failed to start the competition
    */
-  bool start_competition_();
+  bool start_competition();
   //-----------------------------//
 
   /**
@@ -117,7 +117,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true  Successfully ended the competition
    * @return false  Failed to end the competition
    */
-  bool end_competition_();
+  bool end_competition();
   //-----------------------------//
 
   /**
@@ -127,7 +127,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true  Successfully locked the tray
    * @return false  Failed to lock the tray
    */
-  bool lock_tray_(int agv_num);
+  bool lock_tray(int agv_num);
   //-----------------------------//
 
   /**
@@ -138,7 +138,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true  Successfully moved the AGV
    * @return false  Failed to move the AGV
    */
-  bool move_agv_(int agv_num, int destination);
+  bool move_agv(int agv_num, int destination);
   //-----------------------------//
 
   /**
@@ -147,12 +147,12 @@ class FloorRobot : public rclcpp::Node {
    * @return true Successfully completed all the orders
    * @return false Failed to complete all the orders
    */
-  bool complete_orders_();
+  bool complete_orders();
 
   /**
    * @brief Send the floor robot to the home configuration
    */
-  bool go_home_();
+  bool go_home();
   //-----------------------------//
 
   //-----------------------------//
@@ -167,9 +167,6 @@ class FloorRobot : public rclcpp::Node {
   motion planning.
   */
 
-  rclcpp::Node::SharedPtr node_;
-  rclcpp::Executor::SharedPtr executor_;
-  std::thread executor_thread_;
 
   //! Service to move the robot to its home pose
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr move_robot_home_srv_;
@@ -195,7 +192,7 @@ class FloorRobot : public rclcpp::Node {
    * @param req_ Shared pointer to std_srvs::srv::Trigger::Request
    * @param res_ Shared pointer to std_srvs::srv::Trigger::Response
    */
-  void move_robot_home_srv_cb_(
+  void move_robot_home_srv_cb(
       std_srvs::srv::Trigger::Request::SharedPtr req_,
       std_srvs::srv::Trigger::Response::SharedPtr res_);
   /**
@@ -206,7 +203,7 @@ class FloorRobot : public rclcpp::Node {
    * @param res_ Shared pointer to
    * robot_commander_msgs::srv::MoveToTable::Response
    */
-  void move_robot_to_table_srv_cb_(
+  void move_robot_to_table_srv_cb(
       robot_commander_msgs::srv::MoveRobotToTable::Request::SharedPtr req_,
       robot_commander_msgs::srv::MoveRobotToTable::Response::SharedPtr res_);
 
@@ -218,7 +215,7 @@ class FloorRobot : public rclcpp::Node {
    * @param res_ Shared pointer to
    * robot_commander_msgs::srv::MoveToTray::Response
    */
-  void move_robot_to_tray_srv_cb_(
+  void move_robot_to_tray_srv_cb(
       robot_commander_msgs::srv::MoveRobotToTray::Request::SharedPtr req_,
       robot_commander_msgs::srv::MoveRobotToTray::Response::SharedPtr res_);
   /**
@@ -230,7 +227,7 @@ class FloorRobot : public rclcpp::Node {
    * @param res_ Shared pointer to
    * robot_commander_msgs::srv::MoveTrayToAGV::Response
    */
-  void move_tray_to_agv_srv_cb_(
+  void move_tray_to_agv_srv_cb(
       robot_commander_msgs::srv::MoveTrayToAGV::Request::SharedPtr req_,
       robot_commander_msgs::srv::MoveTrayToAGV::Response::SharedPtr res_);
 
@@ -242,7 +239,7 @@ class FloorRobot : public rclcpp::Node {
    * @param res_ Shared pointer to
    * robot_commander_msgs::srv::InToolChanger::Response
    */
-  void enter_tool_changer_srv_cb_(
+  void enter_tool_changer_srv_cb(
       robot_commander_msgs::srv::EnterToolChanger::Request::SharedPtr req_,
       robot_commander_msgs::srv::EnterToolChanger::Response::SharedPtr res_);
 
@@ -254,7 +251,7 @@ class FloorRobot : public rclcpp::Node {
    * @param res_ Shared pointer to
    * robot_commander_msgs::srv::OutToolChanger::Response
    */
-  void exit_tool_changer_srv_cb_(
+  void exit_tool_changer_srv_cb(
       robot_commander_msgs::srv::ExitToolChanger::Request::SharedPtr req_,
       robot_commander_msgs::srv::ExitToolChanger::Response::SharedPtr res_);
 
@@ -265,7 +262,7 @@ class FloorRobot : public rclcpp::Node {
    * This method is called from FloorRobot::move_tray_to_agv_srv_cb
    * @param kts Either 1 or 2
    */
-  bool move_robot_to_table_(int kts);
+  bool move_robot_to_table(int kts);
 
   /**
    * @brief Provide motion to the floor robot to move the attached tray above an
@@ -286,7 +283,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Motion successful
    * @return false Motion failed
    */
-  bool move_robot_to_tray_(int tray_id,
+  bool move_robot_to_tray(int tray_id,
                            const geometry_msgs::msg::Pose &tray_pose);
 
   /**
@@ -295,7 +292,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Motion successful
    * @return false Motion failed
    */
-  bool move_robot_home_();
+  bool move_robot_home();
 
   /**
    * @brief Move the end effector inside a tool changer
@@ -305,7 +302,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Motion successful
    * @return false Motion failed
    */
-  bool enter_tool_changer_(std::string changing_station,
+  bool enter_tool_changer(std::string changing_station,
                            std::string gripper_type);
 
   /**
@@ -316,7 +313,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Motion successful
    * @return false Motion failed
    */
-  bool exit_tool_changer_(std::string changing_station,
+  bool exit_tool_changer(std::string changing_station,
                           std::string gripper_type);
 
   //=========== END PYTHON - C++ ===========//
@@ -328,7 +325,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true  Successfully completed the kitting task
    * @return false Failed to complete the kitting task
    */
-  bool complete_kitting_task_(ariac_msgs::msg::KittingTask task);
+  bool complete_kitting_task(ariac_msgs::msg::KittingTask task);
   //-----------------------------//
 
   /**
@@ -336,7 +333,7 @@ class FloorRobot : public rclcpp::Node {
    *
    * @param order_id ID of the order to submit
    */
-  bool submit_order_(std::string order_id);
+  bool submit_order(std::string order_id);
   //-----------------------------//
 
   /**
@@ -346,7 +343,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Enable the gripper
    * @return false Disable the gripper
    */
-  bool set_gripper_state_(bool status);
+  bool set_gripper_state(bool status);
   //-----------------------------//
 
   /**
@@ -363,7 +360,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Successfully changed the gripper
    * @return false Failed to change the gripper
    */
-  bool change_gripper_(std::string changing_station, std::string gripper_type);
+  bool change_gripper(std::string changing_station, std::string gripper_type);
   //-----------------------------//
 
   /**
@@ -380,7 +377,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Successfully picked and placed the tray
    * @return false Failed to pick and place the tray
    */
-  bool pick_and_place_tray_(int tray_id, int agv_num);
+  bool pick_and_place_tray(int tray_id, int agv_num);
   //-----------------------------//
 
   /**
@@ -390,7 +387,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true  Successfully picked the part
    * @return false Failed to pick the part
    */
-  bool pick_bin_part_(ariac_msgs::msg::Part part_to_pick);
+  bool pick_bin_part(ariac_msgs::msg::Part part_to_pick);
   //-----------------------------//
 
   /**
@@ -407,7 +404,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Successfully placed the part in the tray
    * @return false Failed to place the part in the tray
    */
-  bool place_part_in_tray_(int agv_num, int quadrant);
+  bool place_part_in_tray(int agv_num, int quadrant);
   //-----------------------------//
 
   /**
@@ -417,7 +414,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true Successfully moved to the target pose
    * @return false Failed to move to the target pose
    */
-  bool move_to_target_();
+  bool move_to_target();
   //-----------------------------//
 
   /**
@@ -429,7 +426,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true  Successfully moved through the waypoints
    * @return false  Failed to move through the waypoints
    */
-  bool move_through_waypoints_(std::vector<geometry_msgs::msg::Pose> waypoints,
+  bool move_through_waypoints(std::vector<geometry_msgs::msg::Pose> waypoints,
                                double vsf, double asf);
   //-----------------------------//
 
@@ -438,7 +435,7 @@ class FloorRobot : public rclcpp::Node {
    *
    * @param timeout Timeout in seconds
    */
-  void wait_for_attach_completion_(double timeout);
+  void wait_for_attach_completion(double timeout);
   //-----------------------------//
 
   /**
@@ -446,7 +443,7 @@ class FloorRobot : public rclcpp::Node {
    *
    * @param yaw  Yaw angle in radians
    */
-  geometry_msgs::msg::Quaternion set_robot_orientation_(double yaw);
+  geometry_msgs::msg::Quaternion set_robot_orientation(double yaw);
   //-----------------------------//
 
   /**
@@ -455,7 +452,7 @@ class FloorRobot : public rclcpp::Node {
    * @param frame_id Frame ID of the frame whose pose is to be found
    * @return geometry_msgs::msg::Pose  Pose of the frame in the world frame
    */
-  geometry_msgs::msg::Pose get_pose_in_world_frame_(std::string frame_id);
+  geometry_msgs::msg::Pose get_pose_in_world_frame(std::string frame_id);
   //-----------------------------//
 
   /**
@@ -465,7 +462,7 @@ class FloorRobot : public rclcpp::Node {
    * @param mesh_file  Mesh file of the model
    * @param model_pose  Pose of the model
    */
-  void add_single_model_to_planning_scene_(std::string name,
+  void add_single_model_to_planning_scene(std::string name,
                                            std::string mesh_file,
                                            geometry_msgs::msg::Pose model_pose);
   //-----------------------------//
@@ -477,9 +474,12 @@ class FloorRobot : public rclcpp::Node {
    * inserts, and the conveyor belt
    *
    */
-  void add_models_to_planning_scene_();
+  void add_models_to_planning_scene();
   //-----------------------------//
 
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Executor::SharedPtr executor_;
+  std::thread executor_thread_;
   //! Current order being processed
   ariac_msgs::msg::Order current_order_;
   //! List of received orders

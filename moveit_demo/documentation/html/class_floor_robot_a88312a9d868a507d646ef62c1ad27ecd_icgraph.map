@@ -1,4 +1,0 @@
-<map id="FloorRobot::move_tray_to_agv_srv_cb_" name="FloorRobot::move_tray_to_agv_srv_cb_">
-<area shape="rect" id="node1" title="Callback function for the service /competitor/floor_robot/move_tray_to_agv." alt="" coords="225,5,396,47"/>
-<area shape="rect" id="node2" href="$class_floor_robot.html#a9f59d5385824b89d7fc9a60bbe345283" title="Construct a new FloorRobot object." alt="" coords="5,13,177,39"/>
-</map>

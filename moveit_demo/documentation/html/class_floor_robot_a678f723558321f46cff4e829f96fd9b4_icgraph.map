@@ -1,5 +1,0 @@
-<map id="FloorRobot::enter_tool_changer_" name="FloorRobot::enter_tool_changer_">
-<area shape="rect" id="node1" title="Move the end effector inside a tool changer." alt="" coords="440,5,607,47"/>
-<area shape="rect" id="node2" href="$class_floor_robot.html#adcb0419d56a326215e3ba11a161a03f9" title="Callback function for the service /commander/enter_tool_changer." alt="" coords="225,5,392,47"/>
-<area shape="rect" id="node3" href="$class_floor_robot.html#a9f59d5385824b89d7fc9a60bbe345283" title="Construct a new FloorRobot object." alt="" coords="5,13,177,39"/>
-</map>

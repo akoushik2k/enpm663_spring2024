@@ -1,5 +1,0 @@
-<map id="FloorRobot::move_robot_to_table_srv_cb_" name="FloorRobot::move_robot_to_table_srv_cb_">
-<area shape="rect" id="node1" title="Callback function for the service /commander/move_robot_to_table." alt="" coords="5,5,184,47"/>
-<area shape="rect" id="node2" href="$class_floor_robot.html#a58f090cdd09d9b3fa7167468e5727a8e" title="Provide motion to the floor robot to move its base to one of the two tables." alt="" coords="232,5,411,47"/>
-<area shape="rect" id="node3" href="$class_floor_robot.html#ad107b58ed50f02a9e70545734e30a04a" title="Move the floor robot to the target pose." alt="" coords="459,5,617,47"/>
-</map>

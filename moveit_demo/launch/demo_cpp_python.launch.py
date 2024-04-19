@@ -32,8 +32,7 @@ def launch_setup(context, *args, **kwargs):
     demo_python = Node(
         package="moveit_demo",
         executable="floor_robot_demo.py",
-        output="screen",
-        parameters=generate_parameters(),
+        output="screen"
     )
     rviz_node = Node(
         package="rviz2",
