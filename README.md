@@ -10,11 +10,11 @@
 - alias start_cpp_python_demo='ros2 launch moveit_demo demo_cpp_python.launch.py'
 
 ## To run only C++ demo
-start_ariac
-start_moveit
-start_cpp_demo
+- start_ariac
+- start_moveit
+- start_cpp_demo
 
 ## To run only Python/C++ demo
-start_ariac
-start_moveit
-start_cpp_python_demo
+- start_ariac
+- start_moveit
+- start_cpp_python_demo
